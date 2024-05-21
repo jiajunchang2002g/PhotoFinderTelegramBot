@@ -31,8 +31,7 @@ public class Bot extends TelegramLongPollingBot {
     }
 
     public void sendText(Long who, String what) {
-        SendMessage sm = SendMessage.builder()
-                .chatId(who.toString()) //Who are we sending a message to
+        SendMessage sm = SendMessage.builder().chatId(who.toString()) //Who are we sending a message to
                 .text(what).build();    //Message content
         try {
             execute(sm);                        //Actually sending the message
@@ -41,53 +40,25 @@ public class Bot extends TelegramLongPollingBot {
         }
     }
 
-    @Override
-    public void onUpdateReceived(Update update) {
-        var next = InlineKeyboardButton.builder()
-                .text("Next").callbackData("next")
+    private void scream(Long id, Message msg) {
+        if (msg.hasText()) sendText(id, msg.getText().toUpperCase());
+        else copyMessage(id, msg.getMessageId());
+    }
+
+    public void copyMessage(Long who, Integer msgId) {
+        CopyMessage cm = CopyMessage.builder().fromChatId(who.toString())  //We copy from the user
+                .chatId(who.toString())      //And send it back to him
+                .messageId(msgId)            //Specifying what message
                 .build();
-
-        var back = InlineKeyboardButton.builder()
-                .text("Back").callbackData("back")
-                .build();
-
-        var url = InlineKeyboardButton.builder()
-                .text("Tutorial")
-                .url("https://core.telegram.org/bots/api")
-                .build();
-        var msg = update.getMessage();
-        var user = msg.getFrom();
-        var id = user.getId();
-        var text = msg.getText();
-
-        keyboardM1 = InlineKeyboardMarkup.builder()
-                .keyboardRow(List.of(next)).build();
-
-        keyboardM2 = InlineKeyboardMarkup.builder()
-                .keyboardRow(List.of(back))
-                .keyboardRow(List.of(url))
-                .build();
-
-        if (!msg.isCommand()) {
-            if (screaming)
-                scream(id, update.getMessage());
-            else
-                copyMessage(id, msg.getMessageId());
-        } else {
-            switch (text) {
-                case "/scream" ->
-                        screaming = true;
-                case "/whisper" ->
-                        screaming = false;
-                case "/menu" -> sendMenu(id, "<b>Menu 1</b>", keyboardM1);
-            }
+        try {
+            execute(cm);
+        } catch (TelegramApiException e) {
+            throw new RuntimeException(e);
         }
     }
 
-    public void sendMenu(Long who, String txt, InlineKeyboardMarkup kb){
-        SendMessage sm = SendMessage.builder().chatId(who.toString())
-                .parseMode("HTML").text(txt)
-                .replyMarkup(kb).build();
+    public void sendMenu(Long who, String txt, InlineKeyboardMarkup kb) {
+        SendMessage sm = SendMessage.builder().chatId(who.toString()).parseMode("HTML").text(txt).replyMarkup(kb).build();
 
         try {
             execute(sm);
@@ -98,23 +69,19 @@ public class Bot extends TelegramLongPollingBot {
 
     private void buttonTap(Long id, String queryId, String data, int msgId) {
 
-        EditMessageText newTxt = EditMessageText.builder()
-                .chatId(id.toString())
-                .messageId(msgId).text("").build();
+        EditMessageText newTxt = EditMessageText.builder().chatId(id.toString()).messageId(msgId).text("").build();
 
-        EditMessageReplyMarkup newKb = EditMessageReplyMarkup.builder()
-                .chatId(id.toString()).messageId(msgId).build();
+        EditMessageReplyMarkup newKb = EditMessageReplyMarkup.builder().chatId(id.toString()).messageId(msgId).build();
 
-        if(data.equals("next")) {
+        if (data.equals("next")) {
             newTxt.setText("MENU 2");
             newKb.setReplyMarkup(keyboardM2);
-        } else if(data.equals("back")) {
+        } else if (data.equals("back")) {
             newTxt.setText("MENU 1");
             newKb.setReplyMarkup(keyboardM1);
         }
 
-        AnswerCallbackQuery close = AnswerCallbackQuery.builder()
-                .callbackQueryId(queryId).build();
+        AnswerCallbackQuery close = AnswerCallbackQuery.builder().callbackQueryId(queryId).build();
 
         try {
             execute(close);
@@ -133,23 +100,33 @@ public class Bot extends TelegramLongPollingBot {
         }
     }
 
-    private void scream(Long id, Message msg) {
-        if (msg.hasText())
-            sendText(id, msg.getText().toUpperCase());
-        else
-            copyMessage(id, msg.getMessageId());
-    }
-
-    public void copyMessage(Long who, Integer msgId) {
-        CopyMessage cm = CopyMessage.builder()
-                .fromChatId(who.toString())  //We copy from the user
-                .chatId(who.toString())      //And send it back to him
-                .messageId(msgId)            //Specifying what message
-                .build();
-        try {
-            execute(cm);
-        } catch (TelegramApiException e) {
-            throw new RuntimeException(e);
+    @Override
+    public void onUpdateReceived(Update update) {
+        var msg = update.getMessage();
+        var user = msg.getFrom();
+        var id = user.getId();
+        var text = msg.getText();
+        var query = update.getCallbackQuery();
+        //create buttons
+        var next = InlineKeyboardButton.builder().text("Next").callbackData("next").build();
+        var back = InlineKeyboardButton.builder().text("Back").callbackData("back").build();
+        var url = InlineKeyboardButton.builder().text("Tutorial").url("https://core.telegram.org/bots/api").build();
+        //built and assign keyboards
+        keyboardM1 = InlineKeyboardMarkup.builder().keyboardRow(List.of(next)).build();
+        keyboardM2 = InlineKeyboardMarkup.builder().keyboardRow(List.of(back)).keyboardRow(List.of(url)).build();
+        //handle messages
+        if (!msg.isCommand()) {
+            if (screaming) scream(id, msg);
+            else copyMessage(id, msg.getMessageId());
+        } else {
+            // handle commands
+            switch (text) {
+                case "/scream" -> screaming = true;
+                case "/whisper" -> screaming = false;
+                case "/menu" -> sendMenu(id, "<b>Menu 1</b>", keyboardM1);
+            }
         }
+        //handle button press
+        buttonTap(id, query.getId(), query.getData(), msg.getMessageId());
     }
 }
