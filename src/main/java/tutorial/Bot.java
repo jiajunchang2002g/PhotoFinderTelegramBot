@@ -40,11 +40,6 @@ public class Bot extends TelegramLongPollingBot {
         }
     }
 
-    private void scream(Long id, Message msg) {
-        if (msg.hasText()) sendText(id, msg.getText().toUpperCase());
-        else copyMessage(id, msg.getMessageId());
-    }
-
     public void copyMessage(Long who, Integer msgId) {
         CopyMessage cm = CopyMessage.builder().fromChatId(who.toString())  //We copy from the user
                 .chatId(who.toString())      //And send it back to him
@@ -55,6 +50,11 @@ public class Bot extends TelegramLongPollingBot {
         } catch (TelegramApiException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private void scream(Long id, Message msg) {
+        if (msg.hasText()) sendText(id, msg.getText().toUpperCase());
+        else copyMessage(id, msg.getMessageId());
     }
 
     public void sendMenu(Long who, String txt, InlineKeyboardMarkup kb) {
@@ -102,11 +102,7 @@ public class Bot extends TelegramLongPollingBot {
 
     @Override
     public void onUpdateReceived(Update update) {
-        var msg = update.getMessage();
-        var user = msg.getFrom();
-        var id = user.getId();
-        var text = msg.getText();
-        var query = update.getCallbackQuery();
+
         //create buttons
         var next = InlineKeyboardButton.builder().text("Next").callbackData("next").build();
         var back = InlineKeyboardButton.builder().text("Back").callbackData("back").build();
@@ -114,19 +110,32 @@ public class Bot extends TelegramLongPollingBot {
         //built and assign keyboards
         keyboardM1 = InlineKeyboardMarkup.builder().keyboardRow(List.of(next)).build();
         keyboardM2 = InlineKeyboardMarkup.builder().keyboardRow(List.of(back)).keyboardRow(List.of(url)).build();
-        //handle messages
-        if (!msg.isCommand()) {
-            if (screaming) scream(id, msg);
-            else copyMessage(id, msg.getMessageId());
-        } else {
-            // handle commands
-            switch (text) {
-                case "/scream" -> screaming = true;
-                case "/whisper" -> screaming = false;
-                case "/menu" -> sendMenu(id, "<b>Menu 1</b>", keyboardM1);
+        if (update.hasMessage()) {
+            // handle messages
+            var msg = update.getMessage();
+            var user = msg.getFrom();
+            var id = user.getId();
+            var text = msg.getText();
+            if (!msg.isCommand()) {
+                if (screaming) {
+                    scream(id, msg);
+                } else {
+                    copyMessage(id, msg.getMessageId());
+                }
+            } else {
+                if (text.equals("/whisper")){
+                    screaming = false;
+                } else if ( text.equals("/scream")){
+                    screaming = true;
+                } else if (text.equals("/menu")){
+                    sendMenu(id, "<b>Menu 1</b>", keyboardM1);
+                }
             }
+        } else if (update.hasCallbackQuery()){
+            // handle button tap
+            var query = update.getCallbackQuery();
+            var msg = query.getMessage();
+            buttonTap(msg.getChatId(), query.getId(), query.getData(), msg.getMessageId());
         }
-        //handle button press
-        buttonTap(id, query.getId(), query.getData(), msg.getMessageId());
     }
 }
