@@ -2,7 +2,7 @@
 
 Independent project 
 
-Basic functionalities such as buttons, and replying with upper-case, lower-case etc.
+Basic UI such as buttons; and functionalities such as 'screaming' or 'whispering' text back.  
 
 https://core.telegram.org/bots/tutorial
 
