@@ -17,10 +17,9 @@ This is a Telegram bot developed in **Java** using **Maven**, hosted on a **Rasp
 
 The bot follows a **modular architecture**, with each feature encapsulated in its own class. This makes the code easy to maintain and extend.
 
-- **MainBot.class**: Core logic of the bot.
+- **DogPhotoBot.class**: Core logic of the bot.
 - **HandleInlineQuery.class**: Handles Telegram inline queries.
 - **DogPhotoService.class**: Fetches random dog photos from an external API.
-- **ErrorHandler.class**: Centralized error logging and handling.
 - **ConfigLoader.class**: Loads configuration data from the `bot.properties` file.
 
 ### Future Modifications
