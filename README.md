@@ -2,8 +2,8 @@
 
 This is a Telegram bot developed in **Java** using **Maven**, hosted on a **Raspberry Pi**. The bot is designed to be modular, easy to extend, and handles functionalities like finding dog photos on demand. Sensitive information, such as the bot token, is stored securely in a `bot.properties` file.
 
-[!Example](chat_history.png)
-[Chat History](chat_history.pdf)
+![Example](docs/chat_history.png)
+
 
 ## Features
 
